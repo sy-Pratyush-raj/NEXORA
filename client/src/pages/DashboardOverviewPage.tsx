@@ -60,13 +60,19 @@ export const DashboardOverviewPage: React.FC = () => {
         insightService.getMomentum(),
       ]);
 
-      setProjects(projRes);
-      setTasks(taskRes);
-      setActivities(actRes);
-      setInsightsData(insRes);
-      setMomentumData(momRes);
-      if (projRes.length > 0 && !taskProjectId) {
-        setTaskProjectId(projRes[0]._id);
+      const safeProjects = Array.isArray(projRes) ? projRes : [];
+      const safeTasks = Array.isArray(taskRes) ? taskRes : [];
+      const safeActivities = Array.isArray(actRes) ? actRes : [];
+      const safeMomentum = Array.isArray(momRes) ? momRes : [];
+
+      setProjects(safeProjects);
+      setTasks(safeTasks);
+      setActivities(safeActivities);
+      setInsightsData(insRes || null);
+      setMomentumData(safeMomentum);
+
+      if (safeProjects.length > 0 && !taskProjectId) {
+        setTaskProjectId(safeProjects[0]._id);
       }
     } catch (err: any) {
       console.error('Failed to load dashboard data:', err);
@@ -115,10 +121,14 @@ export const DashboardOverviewPage: React.FC = () => {
     }
   };
 
-  const activeProjectsCount = projects.length;
-  const completedTasksCount = tasks.filter((t) => t.status === 'Done').length;
-  const atRiskCount = projects.filter((p) => p.status === 'At Risk' || p.status === 'Delayed').length;
-  const upcomingCount = tasks.filter((t) => t.status !== 'Done').length;
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeActivities = Array.isArray(activities) ? activities : [];
+
+  const activeProjectsCount = safeProjects.length;
+  const completedTasksCount = safeTasks.filter((t) => t && t.status === 'Done').length;
+  const atRiskCount = safeProjects.filter((p) => p && (p.status === 'At Risk' || p.status === 'Delayed')).length;
+  const upcomingCount = safeTasks.filter((t) => t && t.status !== 'Done').length;
 
   return (
     <DashboardLayout onOpenNewTaskModal={() => setIsTaskModalOpen(true)}>
@@ -155,7 +165,7 @@ export const DashboardOverviewPage: React.FC = () => {
           <StatCard
             title="Active Projects"
             value={activeProjectsCount}
-            subtitle="4 tracked repositories"
+            subtitle={`${activeProjectsCount} tracked repositories`}
             badge="100% Synced"
             badgeVariant="healthy"
             icon={FolderKanban}
@@ -163,7 +173,7 @@ export const DashboardOverviewPage: React.FC = () => {
           <StatCard
             title="Tasks Completed"
             value={completedTasksCount}
-            subtitle={`${tasks.length} total tasks`}
+            subtitle={`${safeTasks.length} total tasks`}
             badge="78% velocity"
             badgeVariant="brand"
             icon={CheckSquare}
@@ -218,7 +228,7 @@ export const DashboardOverviewPage: React.FC = () => {
                 </div>
               </div>
               <Badge variant="brand" size="sm">
-                {tasks.length} total
+                {safeTasks.length} total
               </Badge>
             </div>
             <TaskCompletionChart />
@@ -248,8 +258,8 @@ export const DashboardOverviewPage: React.FC = () => {
 
         {/* Bottom Split: Recent Activity & Upcoming Tasks */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <UpcomingTaskList tasks={tasks} onToggleStatus={handleToggleTaskStatus} />
-          <ActivityFeed activities={activities} />
+          <UpcomingTaskList tasks={safeTasks} onToggleStatus={handleToggleTaskStatus} />
+          <ActivityFeed activities={safeActivities} />
         </div>
       </div>
 
@@ -279,7 +289,7 @@ export const DashboardOverviewPage: React.FC = () => {
               className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
               required
             >
-              {projects.map((p) => (
+              {safeProjects.map((p) => (
                 <option key={p._id} value={p._id}>
                   [{p.key}] {p.name}
                 </option>
